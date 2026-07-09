@@ -170,3 +170,5 @@ If your Render plan doesn't include Cron Jobs, the free fallback is a GitHub Act
 - **Supplier payables** — you track what powder you bought, not yet what you owe each supplier.
 - **Batch-level traceability** — `powder_consumption_lots` already stores exactly which batch(es) a job drew from and at what price, in case you want a detailed cost audit later.
 - ~~No audit trail~~ / ~~no password reset flow~~ / ~~backups are manual~~ — addressed in v7 (Activity Log, password reset/change, scheduled Storage-backed backups). See "What's new: audit trail, password reset, scheduled backups" above.
+ 
+ 
