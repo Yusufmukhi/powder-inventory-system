@@ -1,0 +1,32 @@
+name: Keep Render backend awake
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # lets you manually trigger it from the Actions tab to test
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping root
+        run: curl -sS -o /dev/null -w "root: %{http_code}\n" "${{ secrets.BACKEND_URL }}/"
+
+      - name: Ping customers endpoint
+        run: curl -sS -o /dev/null -w "customers: %{http_code}\n" "${{ secrets.BACKEND_URL }}/customers"
+
+      - name: Ping powders endpoint
+        run: curl -sS -o /dev/null -w "powders: %{http_code}\n" "${{ secrets.BACKEND_URL }}/powders"
+
+      - name: Ping jobs endpoint
+        run: curl -sS -o /dev/null -w "jobs: %{http_code}\n" "${{ secrets.BACKEND_URL }}/jobs"
+
+      - name: Ping suppliers endpoint
+        run: curl -sS -o /dev/null -w "suppliers: %{http_code}\n" "${{ secrets.BACKEND_URL }}/suppliers"
+
+      - name: Ping expenses endpoint
+        run: curl -sS -o /dev/null -w "expenses: %{http_code}\n" "${{ secrets.BACKEND_URL }}/expenses"
+
+      - name: Ping companies endpoint
+        run: curl -sS -o /dev/null -w "companies: %{http_code}\n" "${{ secrets.BACKEND_URL }}/companies"
