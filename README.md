@@ -3,7 +3,7 @@
 ## What changed from v1
 - **Powder = name + supplier only.** Cost lives on each stock batch instead, since price changes per purchase.
 - **Stock is FIFO under the hood.** Every "Add Stock" entry is a batch (qty + price + supplier + date). When a job is approved and powder is consumed, the app draws from the oldest batch first automatically and calculates the real cost from whatever batches it drew from. None of this is labeled "FIFO" anywhere in the UI — it just works.
-- **Suppliers** are their own list with a dropdown + "add new" inline, used both when adding a powder and when adding stock.
+- **Suppliers** are their own list with a dropdown + "add new" inline , used both when adding a powder and when adding stock.
 - **Click a powder row** to open a popup with everything added and used for that shade, with a date range toggle (1 week / 1 month / 3 months / all time) — defaults to 1 month.
 - **Jobs are editable only up to approval.** Once approved, Edit and Approve both disappear; a "Mark Delivered" button takes over.
 - **No per-job profit.** Approve only asks for completion date, powder consumed (kg), and the price you worked for. That's it.
@@ -170,5 +170,6 @@ If your Render plan doesn't include Cron Jobs, the free fallback is a GitHub Act
 - **Supplier payables** — you track what powder you bought, not yet what you owe each supplier.
 - **Batch-level traceability** — `powder_consumption_lots` already stores exactly which batch(es) a job drew from and at what price, in case you want a detailed cost audit later.
 - ~~No audit trail~~ / ~~no password reset flow~~ / ~~backups are manual~~ — addressed in v7 (Activity Log, password reset/change, scheduled Storage-backed backups). See "What's new: audit trail, password reset, scheduled backups" above.
- 
+
+ 
  
