@@ -160,6 +160,91 @@ def get_movements(powder_id: str, days: int = Query(default=30), user: dict = De
     return combined
 
 
+@router.get("/{powder_id}/usage")
+def get_usage(
+    powder_id: str,
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    user: dict = Depends(get_current_user),
+):
+    """
+    Powder consumed on jobs, for the InventoryModal 'Usage' tab.
+    Only pulls the columns that tab actually renders (date, client, qty, cost) —
+    scoped to the requested date range instead of returning full history.
+    """
+    _get_owned_powder(powder_id, user["company_id"])
+
+    batch_ids = [
+        b["id"]
+        for b in supabase.table("powder_batches").select("id").eq("powder_id", powder_id).execute().data
+    ]
+    if not batch_ids:
+        return []
+
+    lots = (
+        supabase.table("powder_consumption_lots")
+        .select("created_at, qty_kg, price_per_kg, jobs(job_number, customers(name))")
+        .in_("batch_id", batch_ids)
+        .gte("created_at", str(from_date))
+        .lte("created_at", f"{to_date}T23:59:59")
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
+    rows = []
+    for l in lots:
+        job = l.get("jobs") or {}
+        qty = l["qty_kg"]
+        price = l["price_per_kg"]
+        rows.append({
+            "date": l["created_at"][:10],
+            "supplier": job.get("job_number"),
+            "client": (job.get("customers") or {}).get("name"),
+            "qty": qty,
+            "cost": round(qty * price, 2),
+        })
+    return rows
+
+
+@router.get("/{powder_id}/stock")
+def get_stock_history(
+    powder_id: str,
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    user: dict = Depends(get_current_user),
+):
+    """
+    Stock added (purchases), for the InventoryModal 'Add Stock' tab.
+    Only pulls date/supplier/qty/rate/value — scoped to the requested range.
+    """
+    _get_owned_powder(powder_id, user["company_id"])
+
+    batches = (
+        supabase.table("powder_batches")
+        .select("purchase_date, qty_kg, price_per_kg, suppliers(name)")
+        .eq("powder_id", powder_id)
+        .gte("purchase_date", str(from_date))
+        .lte("purchase_date", str(to_date))
+        .order("purchase_date", desc=True)
+        .execute()
+        .data
+    )
+
+    rows = []
+    for b in batches:
+        qty = b["qty_kg"]
+        price = b["price_per_kg"]
+        rows.append({
+            "date": b["purchase_date"],
+            "supplier": (b.get("suppliers") or {}).get("name"),
+            "qty": qty,
+            "rate": price,
+            "value": round(qty * price, 2),
+        })
+    return rows
+
+
 @router.get("/low-stock")
 def low_stock(user: dict = Depends(get_current_user)):
     powders = supabase.table("powders").select("*").eq("company_id", user["company_id"]).execute().data

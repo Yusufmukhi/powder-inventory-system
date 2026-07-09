@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { usePowders, useSuppliers, useCreatePowder, useAddStock, queryKeys } from '../hooks/queries'
+import { usePowders, useSuppliers, useCreatePowder, useAddStock, usePowderUsage, usePowderStock, queryKeys } from '../hooks/queries'
 import { Powder } from '../types'
 import SupplierSelect from '../components/SupplierSelect'
-import StockMovementsModal from '../components/StockMovementsModal'
+import InventoryModal from '../components/InventoryModal'
+
+const todayStr = () => new Date().toISOString().slice(0, 10)
+const daysAgoStr = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10)
 
 export default function PowderInventory() {
   const { data: powders = [] } = usePowders()
@@ -14,6 +17,26 @@ export default function PowderInventory() {
 
   const [showNewPowder, setShowNewPowder] = useState(false)
   const [selectedPowder, setSelectedPowder] = useState<Powder | null>(null)
+  const [activeTab, setActiveTab] = useState<'usage' | 'stock'>('usage')
+  const [fromDate, setFromDate] = useState(daysAgoStr(30))
+  const [toDate, setToDate] = useState(todayStr())
+
+  const openPowder = (p: Powder) => {
+    setSelectedPowder(p)
+    setActiveTab('usage')
+    setFromDate(daysAgoStr(30))
+    setToDate(todayStr())
+  }
+
+  // Only the active tab's query is enabled, and only once a powder is
+  // selected — so clicking a row (or switching dates/tabs) fetches exactly
+  // the rows that tab needs, not the powder's entire history.
+  const { data: usageRows = [], isFetching: usageLoading } = usePowderUsage(
+    selectedPowder?.id ?? null, fromDate, toDate, !!selectedPowder && activeTab === 'usage'
+  )
+  const { data: stockRows = [], isFetching: stockLoading } = usePowderStock(
+    selectedPowder?.id ?? null, fromDate, toDate, !!selectedPowder && activeTab === 'stock'
+  )
 
   const [newPowder, setNewPowder] = useState({ shade_name: '', default_supplier_id: '' })
   const [stockForm, setStockForm] = useState({
@@ -90,7 +113,7 @@ export default function PowderInventory() {
             </thead>
             <tbody>
               {powders.map((p) => (
-                <tr key={p.id} className="border-b border-slate-50 cursor-pointer hover:bg-slate-50" onClick={() => setSelectedPowder(p)}>
+                <tr key={p.id} className="border-b border-slate-50 cursor-pointer hover:bg-slate-50" onClick={() => openPowder(p)}>
                   <td className="py-2 font-medium">{p.shade_name}</td>
                   <td className="py-2">
                     <span className={`badge ${p.low_stock ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
@@ -145,9 +168,20 @@ export default function PowderInventory() {
         </div>
       </div>
 
-      {selectedPowder && (
-        <StockMovementsModal powder={selectedPowder} onClose={() => setSelectedPowder(null)} />
-      )}
+      <InventoryModal
+        open={!!selectedPowder}
+        powder={selectedPowder?.shade_name ?? null}
+        fromDate={fromDate}
+        toDate={toDate}
+        activeTab={activeTab}
+        usageRows={usageRows}
+        stockRows={stockRows}
+        loading={activeTab === 'usage' ? usageLoading : stockLoading}
+        onClose={() => setSelectedPowder(null)}
+        onFromChange={setFromDate}
+        onToChange={setToDate}
+        onTabChange={setActiveTab}
+      />
     </div>
   )
 }

@@ -124,9 +124,13 @@ export default function Jobs() {
       <span className={`badge ${statusColors[j.status]}`}>{j.status.replace('_', ' ')}</span>
     </td>
     <td className="py-2">
-      <button className={`badge ${paymentColors[j.payment_status]}`} onClick={(e) => { e.stopPropagation(); setPayingJob(j) }} title="Click to update payment">
-        {j.payment_status}{j.payment_method ? ` · ${methodLabels[j.payment_method]}` : ''}
-      </button>
+      {j.status === 'delivered' && j.payment_status === 'paid' ? (
+        <span className="badge bg-green-100 text-green-700">Completed</span>
+      ) : (
+        <button className={`badge ${paymentColors[j.payment_status]}`} onClick={(e) => { e.stopPropagation(); setPayingJob(j) }} title="Click to update payment">
+          {j.payment_status}{j.payment_method ? ` · ${methodLabels[j.payment_method]}` : ''}
+        </button>
+      )}
     </td>
     <td className="py-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
       {EDITABLE.includes(j.status) && (

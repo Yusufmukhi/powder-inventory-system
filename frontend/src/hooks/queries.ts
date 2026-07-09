@@ -53,6 +53,25 @@ export function useJobs() {
   })
 }
 
+// Powder usage / stock history for the InventoryModal — scoped to a date
+// range and only enabled for whichever tab is currently active, so opening
+// the modal (or switching dates) never pulls more than what's on screen.
+export function usePowderUsage(powderId: string | null, from: string, to: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['powder-usage', powderId, from, to],
+    queryFn: () => api.get(`/powders/${powderId}/usage`, { params: { from_date: from, to_date: to } }).then((r) => r.data),
+    enabled: enabled && !!powderId,
+  })
+}
+
+export function usePowderStock(powderId: string | null, from: string, to: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['powder-stock', powderId, from, to],
+    queryFn: () => api.get(`/powders/${powderId}/stock`, { params: { from_date: from, to_date: to } }).then((r) => r.data),
+    enabled: enabled && !!powderId,
+  })
+}
+
 export function useDashboardSummary() {
   return useQuery({
     queryKey: queryKeys.dashboardSummary,

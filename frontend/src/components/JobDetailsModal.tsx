@@ -135,10 +135,14 @@ export default function JobDetailsModal({ job, onClose, onUpdatePayment }: Props
           )}
         </div>
 
-        <div className="flex gap-2 justify-end mt-5">
+        <div className="flex gap-2 justify-end mt-5 items-center">
           <button className="btn-secondary" onClick={onClose}>Close</button>
-          {job.price_charged != null && (
-            <button className="btn-primary" onClick={onUpdatePayment}>Add Payment</button>
+          {job.status === 'delivered' && job.payment_status === 'paid' ? (
+            <span className="badge bg-green-100 text-green-700">Completed</span>
+          ) : (
+            job.price_charged != null && (
+              <button className="btn-primary" onClick={onUpdatePayment}>Add Payment</button>
+            )
           )}
         </div>
       </div>
