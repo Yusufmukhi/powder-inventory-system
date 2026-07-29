@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from datetime import datetime
+from datetime import datetime, date
 from app.database import supabase
 from app.schemas import JobCreate, JobEdit, JobApprove, PaymentUpdate
 from app.auth import get_current_user, require_owner
@@ -84,6 +84,23 @@ def list_jobs(status: str | None = None, user: dict = Depends(get_current_user))
         j["was_late"] = bool(
             j.get("date_completed") and j["date_completed"] > j["date_promised"]
         )
+
+        # Late-risk score is only meaningful for jobs still in progress —
+        # approved/delivered jobs already have a known outcome.
+        j["late_risk_score"] = None
+        j["late_risk_label"] = None
+        if j["status"] in EDITABLE_STATUSES:
+            risk = predict_late_risk(
+                user["company_id"],
+                j["customer_id"],
+                j["qty_received"],
+                date.fromisoformat(str(j["date_received"])),
+                date.fromisoformat(str(j["date_promised"])),
+            )
+            if risk.get("available"):
+                j["late_risk_score"] = risk["risk_score"]
+                j["late_risk_label"] = risk["risk_label"]
+
     return jobs
 
 
