@@ -1,5 +1,5 @@
 from fastapi import Depends, Header, HTTPException
-from app.database import supabase
+from app.database import supabase, execute_with_retry
 
 
 def get_current_user(authorization: str | None = Header(default=None)) -> dict:
@@ -28,14 +28,12 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     user_id = result.user.id
     email = result.user.email
 
-    profiles = (
+    profiles = execute_with_retry(
         supabase.table("profiles")
         .select("*")
         .eq("id", user_id)
         .limit(1)
-        .execute()
-        .data
-    )
+    ).data
 
     if profiles:
         profile = profiles[0]
@@ -58,14 +56,12 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
                 status_code=403,
                 detail="Your account isn't attached to a company yet. Ask your administrator to fix this.",
             )
-        company = (
+        company = execute_with_retry(
             supabase.table("companies")
             .select("subscription_status")
             .eq("id", company_id)
             .limit(1)
-            .execute()
-            .data
-        )
+        ).data
         if company and company[0]["subscription_status"] != "active":
             raise HTTPException(
                 status_code=402,
@@ -87,3 +83,4 @@ def require_super_admin(user: dict = Depends(get_current_user)) -> dict:
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Only a super admin can do this")
     return user
+    
