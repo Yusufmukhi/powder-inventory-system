@@ -3,3 +3,5 @@ uvicorn[standard]==0.30.6
 supabase==2.9.1
 python-dotenv==1.0.1
 pydantic==2.9.2
+pandas==2.2.3
+scikit-learn==1.5.2
