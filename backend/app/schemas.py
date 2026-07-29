@@ -75,6 +75,13 @@ class JobApprove(BaseModel):
     price_charged: float
 
 
+class LateRiskPredictRequest(BaseModel):
+    customer_id: str
+    qty_received: int
+    date_received: date
+    date_promised: date
+
+
 class PaymentUpdate(BaseModel):
     payment_status: str
     payment_method: Optional[Literal["cash", "cheque", "upi", "bank_transfer", "card"]] = None
