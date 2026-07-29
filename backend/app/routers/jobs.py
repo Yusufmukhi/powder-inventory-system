@@ -4,7 +4,8 @@ from app.database import supabase
 from app.schemas import JobCreate, JobEdit, JobApprove, PaymentUpdate
 from app.auth import get_current_user, require_owner
 from app.audit import log_activity
-from app.schemas import JobCreate, JobEdit, JobApprove, PaymentUpdate, PaymentEntryCreate
+from app.schemas import JobCreate, JobEdit, JobApprove, PaymentUpdate, PaymentEntryCreate, LateRiskPredictRequest
+from app.ml.late_risk import predict_late_risk, train_model, invalidate_cache
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -177,6 +178,7 @@ def approve_job(job_id: str, payload: JobApprove, user: dict = Depends(require_o
             "price_charged": payload.price_charged,
         },
     )
+    invalidate_cache(user["company_id"])
     return res.data[0]
 
 
@@ -287,6 +289,29 @@ def update_payment(job_id: str, payload: PaymentUpdate, user: dict = Depends(get
     return res.data[0]
 
 
+@router.post("/predict-late-risk")
+def predict_late_risk_endpoint(payload: LateRiskPredictRequest, user: dict = Depends(get_current_user)):
+    """
+    Estimates the probability a prospective job (given at intake, before it's
+    even created) will end up delivered after its promised date. Trained on
+    this company's own historical approved/delivered jobs using a logistic
+    regression model (see app/ml/late_risk.py).
+    """
+    return predict_late_risk(
+        user["company_id"],
+        payload.customer_id,
+        payload.qty_received,
+        payload.date_received,
+        payload.date_promised,
+    )
+
+
+@router.post("/ml/retrain-late-risk")
+def retrain_late_risk_endpoint(user: dict = Depends(require_owner)):
+    """Owner-only: force an immediate retrain and return the model's accuracy/precision/recall."""
+    return train_model(user["company_id"])
+
+
 @router.get("/dashboard/summary")
 def dashboard_summary(user: dict = Depends(get_current_user)):
     jobs = supabase.table("jobs").select("*").eq("company_id", user["company_id"]).execute().data
@@ -312,3 +337,4 @@ def dashboard_summary(user: dict = Depends(get_current_user)):
         "outstanding_receivables": round(unpaid_value, 2),
         "low_stock_powders": low_stock,
     }
+    
